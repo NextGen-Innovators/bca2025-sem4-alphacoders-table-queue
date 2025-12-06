@@ -1,0 +1,1 @@
+https://chatgpt.com/gg/v/6933a705d8c4819eb0741a224a0a3f88?token=gj9lkxH6M50ePmBzGNG4jQ
