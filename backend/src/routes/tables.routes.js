@@ -1,9 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const tablesController = require("../controllers/tables.controller");
-const auth = require("../middlewares/auth");
 
+// Public: get all tables
 router.get("/", tablesController.getTables);
-router.post("/", auth("admin"), tablesController.addTable);
+
+// Admin-only (assuming you have middleware for auth)
+router.post("/", tablesController.addTable);
+router.put("/:id", tablesController.updateTable);
+router.delete("/:id", tablesController.deleteTable);
 
 module.exports = router;

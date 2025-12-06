@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { User, Mail, Lock, Phone, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -14,18 +15,32 @@ export default function Register() {
 
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: "" }); // clear error on change
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: "" });
+    }
   };
 
   const validate = () => {
     const newErrors = {};
-    if (form.name.trim().length < 3) newErrors.name = "Name must be at least 3 characters";
-    if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Invalid email address";
-    if (form.password.length < 6) newErrors.password = "Password must be at least 6 characters";
-    if (!/^\d{10}$/.test(form.phone)) newErrors.phone = "Phone must be 10 digits";
+    if (!form.name.trim()) newErrors.name = "Name is required";
+    else if (form.name.trim().length < 2) newErrors.name = "Name too short";
+
+    if (!form.email.trim()) newErrors.email = "Email is required";
+    else if (!/^\S+@\S+\.\S+$/.test(form.email)) newErrors.email = "Invalid email format";
+
+    if (!form.password) newErrors.password = "Password is required";
+    else if (form.password.length < 6) newErrors.password = "Password must be 6+ characters";
+
+    if (!form.phone) newErrors.phone = "Phone number is required";
+    else if (!/^\d{10}$/.test(form.phone.replace(/[\s-]/g, ""))) 
+      newErrors.phone = "Enter valid 10-digit phone number";
+
     return newErrors;
   };
 
@@ -37,101 +52,178 @@ export default function Register() {
       return;
     }
 
+    setIsLoading(true);
+    setMessage("");
+
     try {
       const res = await fetch("http://localhost:5000/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          phone: form.phone.replace(/[\s-]/g, ""), // clean phone
+        }),
       });
+
       const data = await res.json();
+
       if (res.ok) {
-        setMessage(data.message);
-        setTimeout(() => navigate("/login"), 1500); // redirect to login after 1.5s
+        setMessage("Account created successfully! Redirecting to login...");
+        setTimeout(() => navigate("/login"), 2000);
       } else {
-        setMessage(data.error);
+        setMessage(data.error || "Registration failed. Try again.");
       }
     } catch (err) {
-      setMessage("Server error");
+      setMessage("Network error. Please check your connection.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-white to-gray-100">
-      <div className="w-full max-w-md p-8 bg-white shadow-xl rounded-2xl">
-        <h2 className="text-3xl font-extrabold mb-6 text-center text-gray-800">Register</h2>
-        
-        {message && (
-          <p className="mb-4 text-center text-red-500 font-semibold">{message}</p>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <input
-              type="text"
-              name="name"
-              placeholder="Name"
-              value={form.name}
-              onChange={handleChange}
-              className={`w-full border p-3 rounded-lg focus:outline-none focus:ring-2 ${
-                errors.name ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-400"
-              }`}
-              required
-            />
-            {errors.name && <p className="text-red-500 text-sm mt-1 text-center">{errors.name}</p>}
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-amber-50 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Card */}
+        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-red-100 overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-red-600 to-orange-600 p-8 text-center text-white">
+            <div className="w-20 h-20 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center backdrop-blur-sm">
+              <User className="w-12 h-12" />
+            </div>
+            <h1 className="text-4xl font-extrabold mb-2">Join FoodieHub</h1>
+            <p className="text-white/90">Create your account & start booking tables today</p>
           </div>
 
-          <div>
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={form.email}
-              onChange={handleChange}
-              className={`w-full border p-3 rounded-lg focus:outline-none focus:ring-2 ${
-                errors.email ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-400"
-              }`}
-              required
-            />
-            {errors.email && <p className="text-red-500 text-sm mt-1 text-center">{errors.email}</p>}
-          </div>
+          <div className="p-8 lg:p-10">
+            {/* Success/Error Message */}
+            {message && (
+              <div className={`mb-6 p-5 rounded-2xl flex items-center gap-3 text-lg font-medium transition-all ${
+                message.includes("successfully") || message.includes("created")
+                  ? "bg-green-50 text-green-800 border-2 border-green-200"
+                  : "bg-red-50 text-red-800 border-2 border-red-200"
+              }`}>
+                {message.includes("successfully") ? (
+                  <CheckCircle className="w-7 h-7" />
+                ) : (
+                  <AlertCircle className="w-7 h-7" />
+                )}
+                <span>{message}</span>
+              </div>
+            )}
 
-          <div>
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={form.password}
-              onChange={handleChange}
-              className={`w-full border p-3 rounded-lg focus:outline-none focus:ring-2 ${
-                errors.password ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-400"
-              }`}
-              required
-            />
-            {errors.password && <p className="text-red-500 text-sm mt-1 text-center">{errors.password}</p>}
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Name */}
+              <div className="relative">
+                <User className="absolute left-4 top-4 w-5 h-5 text-red-500" />
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Full Name"
+                  value={form.name}
+                  onChange={handleChange}
+                  className={`w-full pl-12 pr-4 py-4 rounded-xl border-2 text-lg transition-all ${
+                    errors.name
+                      ? "border-red-500 focus:border-red-600 focus:ring-4 focus:ring-red-100"
+                      : "border-gray-200 focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                  } outline-none`}
+                />
+                {errors.name && <p className="text-red-600 text-sm mt-2 ml-2">{errors.name}</p>}
+              </div>
 
-          <div>
-            <input
-              type="text"
-              name="phone"
-              placeholder="Phone"
-              value={form.phone}
-              onChange={handleChange}
-              className={`w-full border p-3 rounded-lg focus:outline-none focus:ring-2 ${
-                errors.phone ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-400"
-              }`}
-              required
-            />
-            {errors.phone && <p className="text-red-500 text-sm mt-1 text-center">{errors.phone}</p>}
-          </div>
+              {/* Email */}
+              <div className="relative">
+                <Mail className="absolute left-4 top-4 w-5 h-5 text-red-500" />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Email Address"
+                  value={form.email}
+                  onChange={handleChange}
+                  className={`w-full pl-12 pr-4 py-4 rounded-xl border-2 text-lg transition-all ${
+                    errors.email
+                      ? "border-red-500 focus:border-red-600 focus:ring-4 focus:ring-red-100"
+                      : "border-gray-200 focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                  } outline-none`}
+                />
+                {errors.email && <p className="text-red-600 text-sm mt-2 ml-2">{errors.email}</p>}
+              </div>
 
-          <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 rounded-lg font-semibold shadow hover:scale-105 transform transition"
-          >
-            Register
-          </button>
-        </form>
+              {/* Password */}
+              <div className="relative">
+                <Lock className="absolute left-4 top-4 w-5 h-5 text-red-500" />
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Password (6+ characters)"
+                  value={form.password}
+                  onChange={handleChange}
+                  className={`w-full pl-12 pr-4 py-4 rounded-xl border-2 text-lg transition-all ${
+                    errors.password
+                      ? "border-red-500 focus:border-red-600 focus:ring-4 focus:ring-red-100"
+                      : "border-gray-200 focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                  } outline-none`}
+                />
+                {errors.password && <p className="text-red-600 text-sm mt-2 ml-2">{errors.password}</p>}
+              </div>
+
+              {/* Phone */}
+              <div className="relative">
+                <Phone className="absolute left-4 top-4 w-5 h-5 text-red-500" />
+                <input
+                  type="text"
+                  name="phone"
+                  placeholder="Phone Number (10 digits)"
+                  value={form.phone}
+                  onChange={handleChange}
+                  maxLength="15"
+                  className={`w-full pl-12 pr-4 py-4 rounded-xl border-2 text-lg transition-all ${
+                    errors.phone
+                      ? "border-red-500 focus:border-red-600 focus:ring-4 focus:ring-red-100"
+                      : "border-gray-200 focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                  } outline-none`}
+                />
+                {errors.phone && <p className="text-red-600 text-sm mt-2 ml-2">{errors.phone}</p>}
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`w-full py-5 rounded-xl font-bold text-xl text-white transition-all transform hover:scale-105 shadow-xl ${
+                  isLoading
+                    ? "bg-gray-500 cursor-not-allowed"
+                    : "bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
+                }`}
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-3">
+                    <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Creating Account...
+                  </span>
+                ) : (
+                  "Create Account"
+                )}
+              </button>
+            </form>
+
+            {/* Login Link */}
+            <div className="mt-8 text-center">
+              <p className="text-gray-600">
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="font-bold text-red-600 hover:text-red-700 hover:underline transition"
+                >
+                  Log in here
+                </Link>
+              </p>
+            </div>
+
+            <div className="mt-6 text-center text-sm text-gray-500">
+              <p>By signing up, you agree to our Terms & Privacy Policy</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
