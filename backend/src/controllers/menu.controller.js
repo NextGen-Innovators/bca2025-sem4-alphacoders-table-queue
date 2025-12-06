@@ -1,24 +1,27 @@
 const db = require("../config/db");
 
 module.exports = {
-  getMenu: (req, res) => {
-    const menu = db.prepare("SELECT * FROM menu").all();
-    res.json(menu);
+  // Get all menu items
+  getMenu: async (req, res) => {
+    try {
+      const [rows] = await db.query("SELECT * FROM menu");
+      res.json(rows);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   },
 
-  addMenuItem: (req, res) => {
-    const { name, price, description, photo } = req.body;
+  // Add menu item (Admin only)
+  addMenuItem: async (req, res) => {
+    const { name, price, description, image } = req.body;
     try {
-      db.prepare("INSERT INTO menu (name, price, description, photo) VALUES (?, ?, ?, ?)")
-        .run(name, price, description, photo);
+      await db.query(
+        "INSERT INTO menu (name, price, description, image) VALUES (?, ?, ?, ?)",
+        [name, price, description, image]
+      );
       res.json({ message: "Menu item added" });
     } catch (err) {
       res.status(400).json({ error: err.message });
     }
   },
-
-  getPopularDishes: () => {
-    // Example: return top 5 dishes by some logic, or just return all
-    return db.prepare("SELECT * FROM menu LIMIT 5").all();
-  }
 };

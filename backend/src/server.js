@@ -1,20 +1,30 @@
 const express = require("express");
 const cors = require("cors");
-const app = express();
+const initDb = require("./config/initDb");
 
-app.use(express.json());
-app.use(cors());
+(async () => {
+  const app = express();
+  app.use(express.json());
+  app.use(cors());
 
-// Routes
-const menuRoutes = require("./routes/menu.routes");
-app.use("/api", menuRoutes);
+  // Initialize Database & Tables
+  await initDb();
+  console.log("Database ready!");
 
-app.use("/auth", require("./routes/auth.routes"));
-app.use("/admin", require("./routes/admin.routes"));
-app.use("/customer", require("./routes/customer.routes"));
-app.use("/tables", require("./routes/tables.routes"));
-app.use("/reservations", require("./routes/reservation.routes"));
-app.use("/queue", require("./routes/queue.routes"));
-app.use("/orders", require("./routes/orders.routes"));
+  // Static folder for images  
+  const path = require("path");
+  app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-app.listen(5000, () => console.log("Server running on port 5000"));
+  // Routes
+  app.use("/menu", require("./routes/menu.routes"));
+  app.use("/auth", require("./routes/auth.routes"));
+  app.use("/admin", require("./routes/admin.routes"));
+  app.use("/customer", require("./routes/customer.routes"));
+  app.use("/tables", require("./routes/tables.routes"));
+  app.use("/reservations", require("./routes/reservation.routes"));
+  app.use("/queue", require("./routes/queue.routes"));
+  app.use("/orders", require("./routes/orders.routes"));
+
+  const PORT = 5000;
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+})();
