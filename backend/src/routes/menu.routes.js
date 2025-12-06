@@ -1,12 +1,23 @@
 const express = require("express");
 const router = express.Router();
 const menuController = require("../controllers/menu.controller");
+const multer = require("multer");
+const path = require("path");
 
-// Public
+// Multer storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+});
+const upload = multer({ storage });
+
+// Public routes
 router.get("/", menuController.getMenu);
 router.get("/popular-dishes", menuController.getPopularDishes);
 
-// Admin-only
-router.post("/add", menuController.addMenuItem);
+// Admin-only routes
+router.post("/add", upload.single("image"), menuController.addMenuItem);
+router.put("/:id", upload.single("image"), menuController.updateMenuItem);
+router.delete("/:id", menuController.deleteMenuItem);
 
 module.exports = router;

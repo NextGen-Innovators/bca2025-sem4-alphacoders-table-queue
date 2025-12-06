@@ -1,65 +1,55 @@
 import React, { useEffect, useState } from "react";
-import { getTables, reserveTable, getMenu } from "../api";
+import { getTables, getMenu } from "../api";
+import { useNavigate } from "react-router-dom";
 
 const CustomerDashboard = () => {
   const [tables, setTables] = useState([]);
   const [menu, setMenu] = useState([]);
-  const [phone, setPhone] = useState("");
+  const [reservedTable, setReservedTable] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTables();
     fetchMenu();
   }, []);
 
-  // Fetch tables
   const fetchTables = async () => {
-    const data = await getTables();
-    setTables(data || []);
-  };
-
-  // Fetch menu
-  const fetchMenu = async () => {
-    const data = await getMenu();
-    setMenu(data || []);
-  };
-
-  // Reserve table
-  const handleReserve = async (tableId) => {
-    if (!phone) {
-      alert("Enter your phone number to reserve");
-      return;
+    try {
+      const data = await getTables();
+      setTables(data || []);
+    } catch (err) {
+      console.error("Failed to fetch tables:", err);
     }
+  };
 
-    const data = await reserveTable({
-      user_name: "You",
-      phone,
-      table_id: tableId,
-      time_slot: "Now",
-    });
+  const fetchMenu = async () => {
+    try {
+      const data = await getMenu();
+      setMenu(data || []);
+    } catch (err) {
+      console.error("Failed to fetch menu:", err);
+    }
+  };
 
-    alert(data.message || "Reserved!");
-    fetchTables();
+  const handleReserve = (table) => {
+    setReservedTable(table);
+    alert(`You reserved ${table.name}`);
+  };
+
+  const handleAddToCart = (item) => {
+    // Save to localStorage so CustomerCart can read it
+    const existing = JSON.parse(localStorage.getItem("cart")) || [];
+    localStorage.setItem("cart", JSON.stringify([...existing, item]));
+    alert(`${item.name} added to cart`);
   };
 
   return (
     <div className="p-6 space-y-10">
       <h1 className="text-3xl font-bold">Customer Dashboard</h1>
 
-      {/* Phone input */}
-      <div>
-        <input
-          type="text"
-          placeholder="Your Phone Number"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className="border px-3 py-2 rounded w-64"
-        />
-      </div>
-
       {/* Available Tables */}
       <section>
         <h2 className="text-xl font-semibold mb-3">Available Tables</h2>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {tables.map((t) => (
             <div
@@ -70,10 +60,10 @@ const CustomerDashboard = () => {
               <p>Capacity: {t.capacity}</p>
               <p>Status: {t.status}</p>
 
-              {t.status === "available" && (
+              {t.status === "available" && !reservedTable && (
                 <button
                   className="mt-2 bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-                  onClick={() => handleReserve(t.id)}
+                  onClick={() => handleReserve(t)}
                 >
                   Reserve
                 </button>
@@ -85,8 +75,7 @@ const CustomerDashboard = () => {
 
       {/* Available Menu */}
       <section>
-        <h2 className="text-xl font-semibold mb-3">Available Menu</h2>
-
+        <h2 className="text-xl font-semibold mb-3">Menu</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {menu.map((item) => (
             <div
@@ -95,15 +84,20 @@ const CustomerDashboard = () => {
             >
               {item.image && (
                 <img
-                  src={`http://localhost:5000/images/${item.image}`}
+                  src={`http://localhost:5000/uploads/${item.image}`}
                   alt={item.name}
                   className="w-full h-40 object-cover rounded mb-2"
                 />
               )}
-
               <h3 className="font-bold text-lg">{item.name}</h3>
               <p className="text-gray-600 text-sm mb-1">{item.description}</p>
               <p className="font-semibold">Rs. {item.price}</p>
+              <button
+                className="mt-2 bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                onClick={() => handleAddToCart(item)}
+              >
+                Add to Cart
+              </button>
             </div>
           ))}
         </div>

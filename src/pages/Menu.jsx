@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { getTables, createOrder, getMenu } from "../api"; // make sure getMenu calls /menu
+import { getTables, createOrder, getMenu } from "../api";
 
 const Menu = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [cart, setCart] = useState([]);
   const [tableId, setTableId] = useState("");
   const [tables, setTables] = useState([]);
+  const [user, setUser] = useState(null); // check login
 
   useEffect(() => {
     fetchMenu();
     fetchTables();
+    const token = localStorage.getItem("token");
+    if (token) setUser({ token }); // simple check; you can decode token if needed
   }, []);
 
   const fetchMenu = async () => {
@@ -30,12 +33,16 @@ const Menu = () => {
     }
   };
 
-  const addToCart = (dish) => setCart((prev) => [...prev, dish]);
+  const addToCart = (dish) => {
+    if (!user) return alert("Please login to add items to cart");
+    setCart((prev) => [...prev, dish]);
+  };
 
   const removeFromCart = (index) =>
     setCart((prev) => prev.filter((_, i) => i !== index));
 
   const handleOrder = async () => {
+    if (!user) return alert("Please login to place an order");
     if (!tableId) return alert("Select a table to place order");
     if (cart.length === 0) return alert("Add items to cart first");
 
@@ -59,6 +66,7 @@ const Menu = () => {
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">Menu</h1>
 
+      {/* Menu Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {menuItems.length === 0 ? (
           <p>Loading menu...</p>
@@ -69,13 +77,17 @@ const Menu = () => {
               className="border p-4 rounded shadow flex flex-col justify-between"
             >
               <img
-                src={dish.photo || "/placeholder.png"}
+                src={
+                  dish.image
+                    ? `http://localhost:5000/uploads/${dish.image}`
+                    : "/placeholder.png"
+                }
                 alt={dish.name}
                 className="w-full h-40 object-cover mb-2 rounded"
               />
               <h3 className="font-bold">{dish.name}</h3>
               <p className="text-sm mb-1">{dish.description}</p>
-              <p>Price: ${dish.price}</p>
+              <p>Price: Rs. {dish.price}</p>
               <button
                 className="mt-2 bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                 onClick={() => addToCart(dish)}
@@ -87,6 +99,7 @@ const Menu = () => {
         )}
       </div>
 
+      {/* Table Selection */}
       <div className="mb-4">
         <label className="block mb-1 font-medium">Select Table:</label>
         <select
@@ -105,6 +118,7 @@ const Menu = () => {
         </select>
       </div>
 
+      {/* Cart */}
       <h2 className="text-xl font-semibold mb-2">Cart</h2>
       {cart.length === 0 ? (
         <p>Your cart is empty</p>
@@ -112,7 +126,7 @@ const Menu = () => {
         <ul className="mb-4">
           {cart.map((item, index) => (
             <li key={index} className="flex justify-between mb-1">
-              {item.name} - ${item.price}
+              {item.name} - Rs. {item.price}
               <button
                 className="text-red-500 hover:underline"
                 onClick={() => removeFromCart(index)}
