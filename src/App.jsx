@@ -9,6 +9,8 @@ import Menu from "./pages/Menu";
 import Reservation from "./pages/Reservation";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import AdminDashboard from "./pages/AdminDashboard";
+import CustomerDashboard from "./pages/CustomerDashboard";
 
 function App() {
   return (
@@ -23,6 +25,8 @@ function App() {
           <Route path="/reservation" element={<Reservation />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/customer/dashboard" element={<CustomerDashboard />} />
         </Routes>
       </div>
     </>
