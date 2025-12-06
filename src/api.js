@@ -88,3 +88,21 @@ export const joinQueue = async (queueData) => {
   });
   return res.json();
 };
+
+// ==================== Menu ====================
+
+export const getMenu = async () => {
+  const res = await fetch(`${API_BASE}/menu`, {
+    headers: { ...getAuthHeaders() },
+  });
+  return res.json();
+};
+
+export const addMenuItem = async (menuData) => {
+  const res = await fetch(`${API_BASE}/menu/add`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(menuData),
+  });
+  return res.json();
+};
