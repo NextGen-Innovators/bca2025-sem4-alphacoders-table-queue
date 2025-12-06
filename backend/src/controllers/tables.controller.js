@@ -1,23 +1,26 @@
+const db = require("../config/db");
 
-const db2 = require("../config/db");
 module.exports = {
-getTables: (req, res) => {
-const tables = db2.prepare("SELECT * FROM tables").all();
-res.json(tables);
-},
+  getTables: async (req, res) => {
+    try {
+      const [rows] = await db.query("SELECT * FROM tables");
+      res.json(rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
 
+  addTable: async (req, res) => {
+    try {
+      const { name, capacity } = req.body;
+      if (!name || !capacity) return res.status(400).json({ error: "Name and capacity required" });
 
-createTable: (req, res) => {
-const { name, capacity } = req.body;
-db2.prepare("INSERT INTO tables (name, capacity, status) VALUES (?, ?, ?)")
-.run(name, capacity, "available");
-res.json({ message: "Table created" });
-},
-
-
-updateStatus: (req, res) => {
-const { id, status } = req.body;
-db2.prepare("UPDATE tables SET status = ? WHERE id = ?").run(status, id);
-res.json({ message: "Status updated" });
-},
+      await db.query("INSERT INTO tables (name, capacity) VALUES (?, ?)", [name, capacity]);
+      res.json({ message: "Table added" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
 };
