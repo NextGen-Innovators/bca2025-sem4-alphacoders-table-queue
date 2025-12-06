@@ -37,3 +37,12 @@ CREATE TABLE orders (
   status TEXT,
   created_at TEXT
 );
+
+
+CREATE TABLE IF NOT EXISTS menu (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  price REAL NOT NULL,
+  description TEXT,
+  image TEXT
+);

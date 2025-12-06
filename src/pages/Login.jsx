@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {jwtDecode} from "jwt-decode";
 
 export default function Login({ setToken }) {
   const [form, setForm] = useState({
@@ -6,6 +8,7 @@ export default function Login({ setToken }) {
     password: "",
   });
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -20,10 +23,18 @@ export default function Login({ setToken }) {
         body: JSON.stringify(form),
       });
       const data = await res.json();
+
       if (res.ok) {
-        setMessage("Login successful");
         localStorage.setItem("token", data.token);
-        if (setToken) setToken(data.token); // optional prop for parent state
+        if (setToken) setToken(data.token);
+
+        // Decode token to check role
+        const decoded = jwtDecode(data.token); // { id, role }
+        if (decoded.role === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/menu");
+        }
       } else {
         setMessage(data.error);
       }
