@@ -1,13 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 export default function Login({ setToken }) {
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
-  const [message, setMessage] = useState("");
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [message, setMessage] = useState({ text: "", type: "" });
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -16,63 +13,89 @@ export default function Login({ setToken }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage({ text: "", type: "" });
+
+    if (!form.email || !form.password) {
+      setMessage({ text: "Please fill in all fields", type: "error" });
+      return;
+    }
+
     try {
       const res = await fetch("http://localhost:5000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+
       const data = await res.json();
 
       if (res.ok) {
+        // save token
         localStorage.setItem("token", data.token);
+
+        // update app state
         if (setToken) setToken(data.token);
 
-        // Decode token to check role
-        const decoded = jwtDecode(data.token); // { id, role }
+        const decoded = jwtDecode(data.token);
+
+        setMessage({ text: "Login successful!", type: "success" });
+
+        // React redirect (no page reload)
         if (decoded.role === "admin") {
           navigate("/admin/dashboard");
         } else {
-          navigate("/menu");
+          navigate("/customer/dashboard");
         }
       } else {
-        setMessage(data.error);
+        setMessage({ text: data.error || "Login failed", type: "error" });
       }
     } catch (err) {
-      setMessage("Server error");
+      setMessage({ text: "Server error. Please try again.", type: "error" });
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 bg-white shadow-md rounded">
-      <h2 className="text-2xl font-bold mb-4">Login</h2>
-      {message && <p className="mb-4 text-red-500">{message}</p>}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
-        <button
-          type="submit"
-          className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 transition"
-        >
-          Login
-        </button>
-      </form>
+    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      <div className="w-full max-w-md p-8 bg-white shadow-xl rounded-2xl">
+        <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Login</h2>
+
+        {message.text && (
+          <p
+            className={`mb-4 text-center font-semibold ${
+              message.type === "error" ? "text-red-500" : "text-green-600"
+            }`}
+          >
+            {message.text}
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={handleChange}
+            className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            required
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={handleChange}
+            className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            required
+          />
+          <button
+            type="submit"
+            className="w-full bg-gradient-to-r from-green-500 to-green-700 text-white p-3 rounded-lg font-semibold shadow hover:scale-105 transition"
+          >
+            Login
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
