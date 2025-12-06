@@ -1,31 +1,43 @@
-const db4 = require("../config/db");
+const db = require("../config/db");
+
 module.exports = {
-addQueue: (req, res) => {
-const { user_name, phone } = req.body;
+  getQueue: async (req, res) => {
+    try {
+      const [rows] = await db.query("SELECT * FROM queue ORDER BY position ASC");
+      res.json(rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
 
+  addToQueue: async (req, res) => {
+    const { user_name, phone } = req.body;
+    try {
+      // Get current max position
+      const [result] = await db.query("SELECT MAX(position) AS maxPos FROM queue");
+      const position = (result[0].maxPos || 0) + 1;
 
-const last = db4.prepare("SELECT MAX(position) as maxPos FROM queue").get();
-const pos = (last.maxPos || 0) + 1;
+      await db.query(
+        "INSERT INTO queue (user_name, phone, position, status) VALUES (?, ?, ?, ?)",
+        [user_name, phone, position, "waiting"]
+      );
 
+      res.json({ message: "Added to queue", position });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
 
-db4.prepare(
-"INSERT INTO queue (user_name, phone, position, status) VALUES (?, ?, ?, ?)"
-).run(user_name, phone, pos, "waiting");
-
-
-res.json({ message: "Added to queue", position: pos });
-},
-
-
-getQueue: (req, res) => {
-const rows = db4.prepare("SELECT * FROM queue ORDER BY position ASC").all();
-res.json(rows);
-},
-
-
-removeQueue: (req, res) => {
-const { id } = req.params;
-db4.prepare("DELETE FROM queue WHERE id = ?").run(id);
-res.json({ message: "Removed from queue" });
-},
+  removeFromQueue: async (req, res) => {
+    const { id } = req.params;
+    try {
+      await db.query("DELETE FROM queue WHERE id = ?", [id]);
+      res.json({ message: "Removed from queue" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
 };
