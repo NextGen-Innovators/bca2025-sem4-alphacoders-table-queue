@@ -91,6 +91,7 @@ export const joinQueue = async (queueData) => {
 
 // ==================== Menu ====================
 
+// Fetch menu
 export const getMenu = async () => {
   const res = await fetch(`${API_BASE}/menu`, {
     headers: { ...getAuthHeaders() },
@@ -99,6 +100,18 @@ export const getMenu = async () => {
 };
 
 export const addMenuItem = async (menuData) => {
+  const res = await fetch(`${API_BASE}/menu/add`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(menuData),
+  });
+  return res.json();
+};
+
+
+
+// Add menu (Admin)
+export const addMenu = async (menuData) => {
   const res = await fetch(`${API_BASE}/menu/add`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },

@@ -1,3 +1,14 @@
-const Database = require("better-sqlite3");
-const db = new Database("./database/app.db");
-module.exports = db;
+const mysql = require("mysql2/promise");
+
+// Create a pool (recommended for performance)
+const pool = mysql.createPool({
+  host: "localhost",
+  user: "root",         // your MySQL username
+  password: "", // your MySQL password
+  database: "foodiehub",// database name you will create
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
+module.exports = pool;
