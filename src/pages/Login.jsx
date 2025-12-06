@@ -1,15 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
 
 export default function Login({ setToken }) {
   const [form, setForm] = useState({ email: "", password: "" });
-  const [message, setMessage] = useState({ text: "", type: "" });
+  const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,30 +24,22 @@ export default function Login({ setToken }) {
         body: JSON.stringify(form),
       });
 
+
       const data = await res.json();
 
       if (res.ok) {
-        // save token
-        localStorage.setItem("token", data.token);
-
-        // update app state
+        localStorage.setItem("token", data.token); // store token
         if (setToken) setToken(data.token);
 
-        const decoded = jwtDecode(data.token);
-
-        setMessage({ text: "Login successful!", type: "success" });
-
-        // React redirect (no page reload)
-        if (decoded.role === "admin") {
-          navigate("/admin/dashboard");
-        } else {
-          navigate("/customer/dashboard");
-        }
+        // Navigate without decoding JWT
+        if (data.role === "admin") navigate("/admin/dashboard");
+        else navigate("/menu");
       } else {
-        setMessage({ text: data.error || "Login failed", type: "error" });
+        setMessage(data.error || "Login failed");
       }
     } catch (err) {
-      setMessage({ text: "Server error. Please try again.", type: "error" });
+      setMessage("Server error");
+      console.error(err);
     }
   };
 
