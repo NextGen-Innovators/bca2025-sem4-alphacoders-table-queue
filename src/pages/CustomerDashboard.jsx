@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getTables, getMenu, reserveTable,createOrder } from "../api";
+import { getTables, getMenu, reserveTable, createOrder } from "../api";
 import { ShoppingCart, Users, Clock, CheckCircle, XCircle, Plus } from "lucide-react";
 
 const CustomerDashboard = () => {
@@ -8,6 +8,12 @@ const CustomerDashboard = () => {
   const [cart, setCart] = useState([]);
   const [reservedTable, setReservedTable] = useState(null);
   const [showCart, setShowCart] = useState(false);
+
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [modalTable, setModalTable] = useState(null);
+  const [userName, setUserName] = useState("");
+  const [phone, setPhone] = useState("");
 
   useEffect(() => {
     fetchMenu();
@@ -72,44 +78,58 @@ const CustomerDashboard = () => {
     localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
 
-  const handleReserveTable = async (table) => {
-  if (table.status !== "available") return alert("This table is already booked!");
-  if (cart.length === 0) return alert("Please add items to your cart first!");
+  const openReserveModal = (table) => {
+    if (table.status !== "available") return alert("This table is already booked!");
+    if (cart.length === 0) return alert("Please add items to your cart first!");
+    setModalTable(table);
+    setUserName("");
+    setPhone("");
+    setShowModal(true);
+  };
 
-  const userName = prompt("Your Name:");
-  const phone = prompt("Your Phone Number:");
-  if (!userName || !phone) return;
+  const handleReserveSubmit = async () => {
+    // Validation
+    if (!userName.trim() || userName.trim().length < 3) {
+      return alert("Name must be at least 3 characters long!");
+    }
+    const phonePattern = /^(97|98)\d{8}$/;
+    if (!phone.trim() || !phonePattern.test(phone.trim())) {
+      return alert("Phone number must be 10 digits and start with 97 or 98!");
+    }
 
-  try {
-    // 1️⃣ Reserve table
-    const res = await reserveTable({
-      table_id: table.id,
-      user_name: userName.trim(),
-      phone: phone.trim(),
-    });
-    if (res.error) return alert(res.error);
+    try {
+      // 1️⃣ Reserve table
+      const res = await reserveTable({
+        table_id: modalTable.id,
+        user_name: userName.trim(),
+        phone: phone.trim(),
+      });
+      if (res.error) return alert(res.error);
 
-    // 2️⃣ Create order for the cart
-    const orderRes = await createOrder({
-      table_id: table.id,
-      items: cart, // your cart already has items
-    });
-    if (orderRes.error) return alert(orderRes.error);
+      // 2️⃣ Create order for the cart
+      const orderRes = await createOrder({
+        table_id: modalTable.id,
+        items: cart,
+      });
+      if (orderRes.error) return alert(orderRes.error);
 
-    alert(res.message || "Table reserved & order created successfully!");
+      alert(res.message || "Table reserved & order created successfully!");
 
-    setReservedTable(table);
-    setTables(prev =>
-      prev.map(t => t.id === table.id ? { ...t, status: "reserved" } : t)
-    );
+      setReservedTable(modalTable);
+      setTables((prev) =>
+        prev.map((t) =>
+          t.id === modalTable.id ? { ...t, status: "reserved" } : t
+        )
+      );
 
-    setCart([]);
-    localStorage.removeItem("cart");
-  } catch (err) {
-    console.error(err);
-    alert("Failed to reserve table or create order. Please try again.");
-  }
-};
+      setCart([]);
+      localStorage.removeItem("cart");
+      setShowModal(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to reserve table or create order. Please try again.");
+    }
+  };
 
   const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
@@ -124,21 +144,6 @@ const CustomerDashboard = () => {
           </h1>
           <p className="text-xl md:text-2xl text-gray-700">Order food & reserve your table — all in one place</p>
         </div>
-
-        {/* Floating Cart Button */}
-        {totalItems > 0 && (
-          <div className="fixed bottom-8 right-8 z-40">
-            <button
-              onClick={() => setShowCart(!showCart)}
-              className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-full p-5 shadow-2xl hover:scale-110 transition-all duration-300 flex items-center gap-3"
-            >
-              <ShoppingCart className="w-8 h-8" />
-              <span className="absolute -top-3 -right-3 bg-white text-red-600 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shadow-lg">
-                {totalItems}
-              </span>
-            </button>
-          </div>
-        )}
 
         {/* Cart Toast */}
         {showCart && totalItems > 0 && (
@@ -156,18 +161,8 @@ const CustomerDashboard = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">Rs. {(item.price * (item.quantity || 1)).toFixed(2)}</span>
-                    <button
-                      onClick={() => handleDecrement(i)}
-                      className="bg-gray-200 text-gray-700 px-2 rounded hover:bg-gray-300"
-                    >
-                      -
-                    </button>
-                    <button
-                      onClick={() => handleIncrement(i)}
-                      className="bg-red-600 text-white px-2 rounded hover:bg-red-700"
-                    >
-                      +
-                    </button>
+                    <button onClick={() => handleDecrement(i)} className="bg-gray-200 text-gray-700 px-2 rounded hover:bg-gray-300">-</button>
+                    <button onClick={() => handleIncrement(i)} className="bg-red-600 text-white px-2 rounded hover:bg-red-700">+</button>
                   </div>
                 </div>
               ))}
@@ -186,32 +181,18 @@ const CustomerDashboard = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {menu.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 group"
-              >
+              <div key={item.id} className="bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 group">
                 <div className="relative overflow-hidden">
-                  <img
-                    src={item.image ? `http://localhost:5000/uploads/${item.image}` : "/placeholder-food.jpg"}
-                    alt={item.name}
-                    className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
+                  <img src={item.image ? `http://localhost:5000/uploads/${item.image}` : "/placeholder-food.jpg"} alt={item.name} className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition" />
                 </div>
-
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-2">{item.name}</h3>
-                  {item.description && (
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.description}</p>
-                  )}
+                  {item.description && <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.description}</p>}
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-bold text-red-600">Rs. {item.price}</span>
-                    <button
-                      onClick={() => handleAddToCart(item)}
-                      className="bg-gradient-to-r from-red-600 to-orange-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-xl transform hover:scale-105 transition flex items-center gap-2"
-                    >
-                      <Plus className="w-5 h-5" />
-                      Add
+                    <button onClick={() => handleAddToCart(item)} className="bg-gradient-to-r from-red-600 to-orange-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-xl transform hover:scale-105 flex items-center gap-2">
+                      <Plus className="w-5 h-5" /> Add
                     </button>
                   </div>
                 </div>
@@ -224,12 +205,10 @@ const CustomerDashboard = () => {
         <section>
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
-              <Users className="w-10 h-10 text-red-600" />
-              Available Tables
+              <Users className="w-10 h-10 text-red-600" /> Available Tables
             </h2>
             <p className="text-gray-600 flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Updates every 8 seconds
+              <Clock className="w-5 h-5" /> Updates every 8 seconds
             </p>
           </div>
 
@@ -239,44 +218,18 @@ const CustomerDashboard = () => {
               const canBook = isAvailable && cart.length > 0;
 
               return (
-                <div
-                  key={table.id}
-                  className={`rounded-3xl shadow-xl p-8 text-center transition-all duration-500 ${
-                    isAvailable
-                      ? "bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 hover:shadow-2xl hover:scale-105"
-                      : "bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-200 opacity-80"
-                  }`}
-                >
+                <div key={table.id} className={`rounded-3xl shadow-xl p-8 text-center transition-all duration-500 ${isAvailable ? "bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 hover:shadow-2xl hover:scale-105" : "bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-200 opacity-80"}`}>
                   <div className="mb-6">
-                    {isAvailable ? (
-                      <CheckCircle className="w-16 h-16 mx-auto text-green-600" />
-                    ) : (
-                      <XCircle className="w-16 h-16 mx-auto text-red-600" />
-                    )}
+                    {isAvailable ? <CheckCircle className="w-16 h-16 mx-auto text-green-600" /> : <XCircle className="w-16 h-16 mx-auto text-red-600" />}
                   </div>
-
                   <h3 className="text-2xl font-bold text-gray-800 mb-2">{table.name}</h3>
                   <p className="text-lg text-gray-700 mb-4">Up to {table.capacity} people</p>
-
                   <div className="mb-6">
-                    <span className={`inline-block px-6 py-3 rounded-full text-lg font-bold ${
-                      isAvailable
-                        ? "bg-green-600 text-white"
-                        : "bg-red-600 text-white"
-                    }`}>
+                    <span className={`inline-block px-6 py-3 rounded-full text-lg font-bold ${isAvailable ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>
                       {isAvailable ? "Available" : "Booked"}
                     </span>
                   </div>
-
-                  <button
-                    onClick={() => handleReserveTable(table)}
-                    disabled={!canBook}
-                    className={`w-full py-4 rounded-2xl font-bold text-lg transition-all ${
-                      canBook
-                        ? "bg-gradient-to-r from-red-600 to-orange-600 text-white hover:shadow-xl transform hover:scale-105"
-                        : "bg-gray-400 text-gray-200 cursor-not-allowed"
-                    }`}
-                  >
+                  <button onClick={() => openReserveModal(table)} disabled={!canBook} className={`w-full py-4 rounded-2xl font-bold text-lg transition-all ${canBook ? "bg-gradient-to-r from-red-600 to-orange-600 text-white hover:shadow-xl transform hover:scale-105" : "bg-gray-400 text-gray-200 cursor-not-allowed"}`}>
                     {canBook ? "Reserve This Table" : isAvailable ? "Add items first" : "Already Booked"}
                   </button>
                 </div>
@@ -284,6 +237,23 @@ const CustomerDashboard = () => {
             })}
           </div>
         </section>
+
+        {/* Reservation Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-md relative">
+              <h2 className="text-2xl font-bold mb-4">Reserve Table: {modalTable.name}</h2>
+              <div className="space-y-4">
+                <input type="text" placeholder="Your Name" value={userName} onChange={(e) => setUserName(e.target.value)} className="w-full p-3 border rounded-lg" />
+                <input type="text" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full p-3 border rounded-lg" />
+              </div>
+              <div className="flex justify-end mt-6 gap-4">
+                <button onClick={() => setShowModal(false)} className="px-6 py-3 bg-gray-300 rounded-lg hover:bg-gray-400">Cancel</button>
+                <button onClick={handleReserveSubmit} className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700">Reserve</button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
