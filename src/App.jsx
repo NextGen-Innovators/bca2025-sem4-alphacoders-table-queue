@@ -21,6 +21,8 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import CustomerCart from "./pages/customer/CustomerCart";
 import CustomerHistory from "./pages/customer/CustomerHistory";
 import AdminTable from "./admin/AdminTable";
+import AdminOrders from "./admin/AdminOrders";
+import AdminReservations from "./admin/AdminReservations";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
@@ -66,6 +68,8 @@ function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/menu" element={<AdminMenu />} />
           <Route path="/admin/table" element={<AdminTable />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
+          <Route path="/admin/reservations" element={<AdminReservations />} />
 
           {/* Customer pages */}
           <Route path="/customer/dashboard" element={<CustomerDashboard />} />

@@ -13,9 +13,8 @@ const upload = multer({ storage });
 
 // Public routes
 router.get("/", menuController.getMenu);
-router.get("/popular-dishes", menuController.getPopularDishes);
 
-// Admin-only routes
+// Admin routes
 router.post("/add", upload.single("image"), menuController.addMenuItem);
 router.put("/:id", upload.single("image"), menuController.updateMenuItem);
 router.delete("/:id", menuController.deleteMenuItem);

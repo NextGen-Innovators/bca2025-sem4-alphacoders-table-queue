@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getTables, getMenu, reserveTable } from "../api";
+import { getTables, getMenu, reserveTable,createOrder } from "../api";
 import { ShoppingCart, Users, Clock, CheckCircle, XCircle, Plus } from "lucide-react";
 
 const CustomerDashboard = () => {
@@ -16,7 +16,6 @@ const CustomerDashboard = () => {
     const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
     setCart(storedCart);
 
-    // Auto-refresh tables every 8 seconds
     const interval = setInterval(fetchTables, 8000);
     return () => clearInterval(interval);
   }, []);
@@ -40,46 +39,77 @@ const CustomerDashboard = () => {
   };
 
   const handleAddToCart = (item) => {
-    const updatedCart = [...cart, { ...item, quantity: 1 }];
+    const index = cart.findIndex((i) => i.id === item.id);
+    let updatedCart = [...cart];
+
+    if (index !== -1) {
+      updatedCart[index].quantity = (updatedCart[index].quantity || 1) + 1;
+    } else {
+      updatedCart.push({ ...item, quantity: 1 });
+    }
+
     setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
     setShowCart(true);
     setTimeout(() => setShowCart(false), 2000);
   };
 
-  const handleReserveTable = async (table) => {
-    if (table.status !== "available") return alert("This table is already booked!");
-    if (cart.length === 0) return alert("Please add items to your cart first!");
-
-    const userName = prompt("Your Name:");
-    const phone = prompt("Your Phone Number:");
-    if (!userName || !phone) return;
-
-    try {
-      const res = await reserveTable({
-        table_id: table.id,
-        user_name: userName.trim(),
-        phone: phone.trim(),
-      });
-
-      if (res.error) return alert(res.error);
-
-      alert(res.message || "Table reserved successfully!");
-      setReservedTable(table);
-
-      // Update local table status
-      setTables(prev =>
-        prev.map(t => t.id === table.id ? { ...t, status: "reserved" } : t)
-      );
-
-      // Clear cart after successful booking
-      setCart([]);
-      localStorage.removeItem("cart");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to reserve table. Please try again.");
-    }
+  const handleIncrement = (index) => {
+    const updatedCart = [...cart];
+    updatedCart[index].quantity = (updatedCart[index].quantity || 1) + 1;
+    setCart(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
+
+  const handleDecrement = (index) => {
+    const updatedCart = [...cart];
+    if ((updatedCart[index].quantity || 1) > 1) {
+      updatedCart[index].quantity -= 1;
+    } else {
+      updatedCart.splice(index, 1);
+    }
+    setCart(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
+  };
+
+  const handleReserveTable = async (table) => {
+  if (table.status !== "available") return alert("This table is already booked!");
+  if (cart.length === 0) return alert("Please add items to your cart first!");
+
+  const userName = prompt("Your Name:");
+  const phone = prompt("Your Phone Number:");
+  if (!userName || !phone) return;
+
+  try {
+    // 1️⃣ Reserve table
+    const res = await reserveTable({
+      table_id: table.id,
+      user_name: userName.trim(),
+      phone: phone.trim(),
+    });
+    if (res.error) return alert(res.error);
+
+    // 2️⃣ Create order for the cart
+    const orderRes = await createOrder({
+      table_id: table.id,
+      items: cart, // your cart already has items
+    });
+    if (orderRes.error) return alert(orderRes.error);
+
+    alert(res.message || "Table reserved & order created successfully!");
+
+    setReservedTable(table);
+    setTables(prev =>
+      prev.map(t => t.id === table.id ? { ...t, status: "reserved" } : t)
+    );
+
+    setCart([]);
+    localStorage.removeItem("cart");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to reserve table or create order. Please try again.");
+  }
+};
 
   const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
@@ -119,9 +149,26 @@ const CustomerDashboard = () => {
             </h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {cart.map((item, i) => (
-                <div key={i} className="flex justify-between text-sm">
-                  <span>{item.name}</span>
-                  <span className="font-medium">Rs. {item.price}</span>
+                <div key={i} className="flex justify-between items-center text-sm">
+                  <div>
+                    <span className="font-medium">{item.name}</span>
+                    <span className="ml-2 text-gray-500">x{item.quantity || 1}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Rs. {(item.price * (item.quantity || 1)).toFixed(2)}</span>
+                    <button
+                      onClick={() => handleDecrement(i)}
+                      className="bg-gray-200 text-gray-700 px-2 rounded hover:bg-gray-300"
+                    >
+                      -
+                    </button>
+                    <button
+                      onClick={() => handleIncrement(i)}
+                      className="bg-red-600 text-white px-2 rounded hover:bg-red-700"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -1,19 +1,27 @@
 const db = require("../config/db");
 
 // Helper to get customer ID from auth middleware or request
-const getCustomerId = (req) => {
-  // Assuming you attach `user` info in `req.user` after auth middleware
-  return req.user?.id || null;
-};
+const getCustomerId = (req) => req.user?.id || null;
 
 module.exports = {
   // Get all orders (admin)
   getOrders: async (req, res) => {
     try {
-      const [rows] = await db.query("SELECT * FROM orders ORDER BY created_at DESC");
-      res.json(rows);
+      const [rows] = await db.query(`
+        SELECT o.*, u.name AS customer_name
+        FROM orders o
+        LEFT JOIN users u ON o.customer_id = u.id
+        ORDER BY o.created_at DESC
+      `);
+
+      const orders = rows.map(order => ({
+        ...order,
+        items: order.items ? JSON.parse(order.items) : []
+      }));
+
+      res.json(orders);
     } catch (err) {
-      console.error(err);
+      console.error("Get Orders Error:", err);
       res.status(500).json({ error: "Server error" });
     }
   },
@@ -29,9 +37,14 @@ module.exports = {
         [customerId]
       );
 
-      res.json(rows);
+      const orders = rows.map(order => ({
+        ...order,
+        items: order.items ? JSON.parse(order.items) : []
+      }));
+
+      res.json(orders);
     } catch (err) {
-      console.error(err);
+      console.error("Get Customer Orders Error:", err);
       res.status(500).json({ error: "Server error" });
     }
   },
@@ -51,7 +64,7 @@ module.exports = {
       );
       res.json({ message: "Order created" });
     } catch (err) {
-      console.error(err);
+      console.error("Create Order Error:", err);
       res.status(500).json({ error: "Server error" });
     }
   },
@@ -60,12 +73,13 @@ module.exports = {
   updateOrderStatus: async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
+
     try {
       await db.query("UPDATE orders SET status = ? WHERE id = ?", [status, id]);
       res.json({ message: "Order status updated" });
     } catch (err) {
-      console.error(err);
+      console.error("Update Order Status Error:", err);
       res.status(500).json({ error: "Server error" });
     }
-  },
+  }
 };

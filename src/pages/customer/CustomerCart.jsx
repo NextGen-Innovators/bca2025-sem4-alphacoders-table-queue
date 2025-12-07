@@ -18,7 +18,28 @@ const CustomerCart = () => {
     localStorage.setItem("cart", JSON.stringify(updated));
   };
 
-  const total = cart.reduce((sum, item) => sum + parseFloat(item.price), 0);
+  const handleIncrement = (index) => {
+    const updated = [...cart];
+    updated[index].quantity = (updated[index].quantity || 1) + 1;
+    setCart(updated);
+    localStorage.setItem("cart", JSON.stringify(updated));
+  };
+
+  const handleDecrement = (index) => {
+    const updated = [...cart];
+    if ((updated[index].quantity || 1) > 1) {
+      updated[index].quantity -= 1;
+    } else {
+      updated.splice(index, 1); // remove if quantity goes to 0
+    }
+    setCart(updated);
+    localStorage.setItem("cart", JSON.stringify(updated));
+  };
+
+  const total = cart.reduce(
+    (sum, item) => sum + (parseFloat(item.price) * (item.quantity || 1)),
+    0
+  );
 
   return (
     <div className="p-6 max-w-md mx-auto border rounded shadow">
@@ -38,11 +59,26 @@ const CustomerCart = () => {
         <ul className="space-y-2">
           {cart.map((item, index) => (
             <li key={index} className="flex justify-between border-b py-1 items-center">
-              <span>{item.name}</span>
+              <div>
+                <span className="font-medium">{item.name}</span>
+                <span className="ml-2 text-gray-500">x{item.quantity || 1}</span>
+              </div>
               <div className="flex items-center gap-2">
-                <span>Rs. {item.price}</span>
+                <span>Rs. {(item.price * (item.quantity || 1)).toFixed(2)}</span>
                 <button
-                  className="text-red-500 hover:underline"
+                  onClick={() => handleDecrement(index)}
+                  className="bg-gray-200 text-gray-700 px-2 rounded hover:bg-gray-300"
+                >
+                  -
+                </button>
+                <button
+                  onClick={() => handleIncrement(index)}
+                  className="bg-red-600 text-white px-2 rounded hover:bg-red-700"
+                >
+                  +
+                </button>
+                <button
+                  className="text-red-500 hover:underline ml-2"
                   onClick={() => handleRemove(index)}
                 >
                   Remove
@@ -61,4 +97,3 @@ const CustomerCart = () => {
 };
 
 export default CustomerCart;
-              

@@ -1,16 +1,20 @@
 const API_BASE = "http://localhost:5000"; // adjust if your backend runs on another port
 
-// Helper: include JWT token if logged in
-const getAuthHeaders = () => {
+// ==================== Helpers ====================
+export const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-// Generic fetch handler with error checking
 const handleFetch = async (res) => {
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Request failed");
+    const errText = await res.text();
+    try {
+      const err = JSON.parse(errText);
+      throw new Error(err.error || "Request failed");
+    } catch {
+      throw new Error(errText || "Request failed");
+    }
   }
   return res.json();
 };
@@ -44,9 +48,7 @@ export const getAllUsers = async () => {
 
 // ==================== Tables ====================
 export const getTables = async () => {
-  const res = await fetch(`${API_BASE}/tables`, {
-    headers: getAuthHeaders(),
-  });
+  const res = await fetch(`${API_BASE}/tables`, { headers: getAuthHeaders() });
   return handleFetch(res);
 };
 
@@ -76,12 +78,17 @@ export const deleteTable = async (id) => {
   return handleFetch(res);
 };
 
-
-
 // ==================== Orders ====================
 export const getOrders = async () => {
-  const res = await fetch(`${API_BASE}/orders`, {
-    headers: getAuthHeaders(),
+  const res = await fetch(`${API_BASE}/orders`, { headers: getAuthHeaders() });
+  return handleFetch(res);
+};
+
+export const updateOrderStatus = async (id, status) => {
+  const res = await fetch(`${API_BASE}/orders/${id}`, {
+    method: "PUT",
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
   });
   return handleFetch(res);
 };
@@ -95,11 +102,74 @@ export const createOrder = async (orderData) => {
   return handleFetch(res);
 };
 
-// ==================== Queue ====================
-export const getQueue = async () => {
-  const res = await fetch(`${API_BASE}/queue`, {
+// ==================== Reservations ====================
+export const getAllReservations = async () => {
+  const res = await fetch(`${API_BASE}/reservations`, {
     headers: getAuthHeaders(),
   });
+  return handleFetch(res);
+};
+
+export const cancelReservation = async (id) => {
+  const res = await fetch(`${API_BASE}/reservations/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  return handleFetch(res);
+};
+
+export const reserveTable = async (reservationData) => {
+  const res = await fetch(`${API_BASE}/reservations/reserve`, {
+    method: "POST",
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(reservationData),
+  });
+  return handleFetch(res);
+};
+
+// ==================== Menu ====================
+export const getMenu = async () => {
+  const res = await fetch(`${API_BASE}/menu`, { headers: getAuthHeaders() });
+  return handleFetch(res);
+};
+
+// api.js
+
+export const addMenuItem = async (formData) => {
+  const res = await fetch(`${API_BASE}/menu/add`, {
+    method: "POST",
+    headers: getAuthHeaders(), // DO NOT set Content-Type manually
+    body: formData,
+  });
+  return handleFetch(res);
+};
+
+export const updateMenuItem = async (id, formData) => {
+  const res = await fetch(`${API_BASE}/menu/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: formData,
+  });
+  return handleFetch(res);
+};
+
+
+export const deleteMenuItem = async (id) => {
+  const res = await fetch(`${API_BASE}/menu/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  return handleFetch(res);
+};
+
+export const getPopularDishes = async () => {
+  const res = await fetch(`${API_BASE}/menu/popular-dishes`, { headers: getAuthHeaders() });
+  return handleFetch(res);
+};
+
+// ==================== Queue ====================
+export const getQueue = async () => {
+  const res = await fetch(`${API_BASE}/queue`, { headers: getAuthHeaders() });
   return handleFetch(res);
 };
 
@@ -111,76 +181,10 @@ export const joinQueue = async (queueData) => {
   });
   return handleFetch(res);
 };
-
-// ==================== Menu ====================
-export const getMenu = async () => {
-  const res = await fetch(`${API_BASE}/menu`, {
-    headers: getAuthHeaders(),
-  });
-  return handleFetch(res);
-};
-
-export const addMenuItem = async (menuData, imageFile = null) => {
-  const formData = new FormData();
-  formData.append("name", menuData.name);
-  formData.append("price", menuData.price);
-  formData.append("description", menuData.description);
-  if (imageFile) formData.append("image", imageFile);
-
-  const res = await fetch(`${API_BASE}/menu/add`, {
-    method: "POST",
-    headers: getAuthHeaders(), // DO NOT set Content-Type manually
-    body: formData,
-  });
-  return handleFetch(res);
-};
-
-export const updateMenuItem = async (id, menuData) => {
-  const formData = new FormData();
-  formData.append("name", menuData.name);
-  formData.append("price", menuData.price);
-  formData.append("description", menuData.description);
-  if (menuData.image) formData.append("image", menuData.image);
-
-  const res = await fetch(`${API_BASE}/menu/${id}`, {
-    method: "PUT",
-    headers: getAuthHeaders(), // DO NOT set Content-Type manually
-    body: formData,
-  });
-  return handleFetch(res);
-};
-
-export const deleteMenuItem = async (id) => {
-  const res = await fetch(`${API_BASE}/menu/${id}`, {
-    method: "DELETE",
-    headers: getAuthHeaders(),
-  });
-  return handleFetch(res);
-};
-
-export const getPopularDishes = async () => {
-  const res = await fetch(`${API_BASE}/menu/popular-dishes`, {
-    headers: getAuthHeaders(),
-  });
-  return handleFetch(res);
-};
-
-export const reserveTable = async (reservationData) => {
-  const res = await fetch(`${API_BASE}/reservations/reserve`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(reservationData),
-  });
-  return res.json();
-};
-
+// ==================== Customer Orders ====================
 export const getCustomerOrders = async () => {
-  const token = localStorage.getItem("token");
-  const res = await fetch("http://localhost:5000/orders/customer", {
-    headers: { Authorization: `Bearer ${token}` },
+  const res = await fetch(`${API_BASE}/orders/customer`, {
+    headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error("Failed to fetch orders");
-  return res.json();
+  return handleFetch(res);
 };
-
-

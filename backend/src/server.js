@@ -10,6 +10,7 @@ const initDb = require("./config/initDb");
   // Initialize Database & Tables
   await initDb();
   console.log("Database ready!");
+  
 
   // Static folder for images  
   const path = require("path");

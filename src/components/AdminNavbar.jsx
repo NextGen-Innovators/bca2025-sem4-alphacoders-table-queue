@@ -19,6 +19,11 @@ const AdminNavbar = ({ setToken }) => {
     { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/admin/menu", label: "Menu", icon: Utensils },
     { to: "/admin/table", label: "Tables", icon: Table },
+    { to: "/admin/orders", label: "Orders", icon: Table },
+    { to: "/admin/reservations", label: "Reservations", icon: Table },
+    
+
+    
   ];
 
   const isActive = (path) => location.pathname === path;

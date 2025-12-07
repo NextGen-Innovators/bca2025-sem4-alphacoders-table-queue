@@ -13,73 +13,60 @@ module.exports.getMenu = async (req, res) => {
 
 // Add a new menu item
 module.exports.addMenuItem = async (req, res) => {
-  const { name, price, description } = req.body;
-  const image = req.file ? req.file.filename : null;
-
   try {
+    const { name, price, description } = req.body;
+    const image = req.file ? req.file.filename : null;
+
+    if (!name || !price) {
+      return res.status(400).json({ error: "Name and price are required" });
+    }
+
     await db.execute(
       "INSERT INTO menu (name, price, description, image) VALUES (?, ?, ?, ?)",
-      [name, price, description, image]
+      [name, parseFloat(price), description || "", image]
     );
+
     res.json({ message: "Menu item added", image });
   } catch (err) {
-    console.error(err);
+    console.error("Add Menu Error:", err);
     res.status(500).json({ error: "Server error" });
   }
 };
 
-// Update an existing menu item
+// Update menu item
 module.exports.updateMenuItem = async (req, res) => {
-  const { id } = req.params;
-  const { name, price, description } = req.body;
-  const image = req.file ? req.file.filename : undefined;
-
   try {
+    const { id } = req.params;
+    const { name, price, description } = req.body;
+    const image = req.file ? req.file.filename : undefined;
+
     if (image) {
       await db.execute(
         "UPDATE menu SET name=?, price=?, description=?, image=? WHERE id=?",
-        [name, price, description, image, id]
+        [name, parseFloat(price), description || "", image, id]
       );
     } else {
       await db.execute(
         "UPDATE menu SET name=?, price=?, description=? WHERE id=?",
-        [name, price, description, id]
+        [name, parseFloat(price), description || "", id]
       );
     }
+
     res.json({ message: "Menu item updated" });
   } catch (err) {
-    console.error(err);
+    console.error("Update Menu Error:", err);
     res.status(500).json({ error: "Server error" });
   }
 };
 
-// Delete a menu item
+// Delete menu item
 module.exports.deleteMenuItem = async (req, res) => {
-  const { id } = req.params;
-
   try {
+    const { id } = req.params;
     await db.execute("DELETE FROM menu WHERE id=?", [id]);
     res.json({ message: "Menu item deleted" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-};
-
-// Get popular dishes
-module.exports.getPopularDishes = async (req, res) => {
-  try {
-    const [rows] = await db.execute(`
-      SELECT m.id, m.name, m.price, m.description, m.image, COUNT(o.id) AS order_count
-      FROM menu m
-      LEFT JOIN orders o ON JSON_CONTAINS(o.items, JSON_QUOTE(m.name))
-      GROUP BY m.id
-      ORDER BY order_count DESC
-      LIMIT 5
-    `);
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
+    console.error("Delete Menu Error:", err);
     res.status(500).json({ error: "Server error" });
   }
 };

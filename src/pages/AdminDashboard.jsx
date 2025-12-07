@@ -236,7 +236,7 @@ const AdminDashboard = () => {
                       <div className="flex justify-between">
                         <div>
                           <p className="font-bold text-lg">Table {o.table_id}</p>
-                          <p className="text-sm text-gray-600">Items: {JSON.parse(o.items || "[]").length}</p>
+                          <p className="text-sm text-gray-600">Items: {Array.isArray(o.items) ? o.items.length : 0}</p>
                         </div>
                         <span className={`px-4 py-2 rounded-full text-sm font-bold ${
                           o.status === "pending" 
@@ -254,6 +254,7 @@ const AdminDashboard = () => {
               )}
             </div>
           </div>
+
         </div>
       </div>
     </div>
