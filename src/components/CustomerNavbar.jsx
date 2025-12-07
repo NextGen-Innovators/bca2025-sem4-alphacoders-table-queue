@@ -39,7 +39,7 @@ const CustomerNavbar = () => {
     { to: "/customer/dashboard", label: "Home", icon: <Home className="w-5 h-5" /> },
     { to: "/customer/dashboard/cart", label: "Cart", icon: <ShoppingCart className="w-5 h-5" /> },
     { to: "/customer/dashboard/orderhistory", label: "Order History", icon: <History className="w-5 h-5" /> },
-    { to: "/customer/dashboard/orderqueue", label: "Order Queue", icon: <Clock className="w-5 h-5" /> },
+    // { to: "/customer/dashboard/orderqueue", label: "Order Queue", icon: <Clock className="w-5 h-5" /> },
   ];
 
   return (
