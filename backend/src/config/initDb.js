@@ -74,9 +74,11 @@ async function initDb() {
       CREATE TABLE IF NOT EXISTS orders (
         id INT AUTO_INCREMENT PRIMARY KEY,
         table_id INT,
+        customer_id INT,
         items TEXT,
         status ENUM('pending','completed','cancelled') DEFAULT 'pending',
         created_at DATETIME,
+        FOREIGN KEY (customer_id) REFERENCES users(id),
         FOREIGN KEY (table_id) REFERENCES tables(id)
       );
     `);
@@ -112,30 +114,6 @@ async function initDb() {
         SELECT email FROM users WHERE email = 'customer@restaurant.com'
       ) LIMIT 1;
     `);
-
-    // 6️⃣ Ensure customer_id column exists in orders table
-    await db.query(`
-      ALTER TABLE orders
-      ADD COLUMN IF NOT EXISTS customer_id INT
-    `);
-
-    // 7️⃣ Ensure foreign key exists
-    const [fkRows] = await db.query(`
-      SELECT CONSTRAINT_NAME
-      FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-      WHERE TABLE_SCHEMA = '${DB_NAME}'
-        AND TABLE_NAME = 'orders'
-        AND COLUMN_NAME = 'customer_id'
-        AND REFERENCED_TABLE_NAME = 'users'
-    `);
-
-    if (fkRows.length === 0) {
-      await db.query(`
-        ALTER TABLE orders
-        ADD CONSTRAINT fk_customer
-        FOREIGN KEY (customer_id) REFERENCES users(id)
-      `);
-    }
 
     console.log("Admin and customer users ensured.");
     console.log("Database setup finished.");
