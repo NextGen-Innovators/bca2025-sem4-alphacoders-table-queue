@@ -285,19 +285,6 @@ const CustomerDashboard = () => {
           </div>
         </section>
 
-        {/* Success Message */}
-        {reservedTable && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-            <div className="bg-white rounded-3xl shadow-2xl p-10 text-center max-w-md animate-bounce-in">
-              <CheckCircle className="w-24 h-24 text-green-600 mx-auto mb-6" />
-              <h3 className="text-3xl font-bold text-gray-800 mb-4">Table Reserved!</h3>
-              <p className="text-xl text-gray-700">
-                <strong>{reservedTable.name}</strong> is now yours!
-              </p>
-              <p className="text-gray-600 mt-4">Your order is being prepared</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
